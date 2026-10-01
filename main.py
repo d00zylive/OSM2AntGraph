@@ -28,20 +28,30 @@ def get_quarter(quarter_name: str) -> dict:
 
 quarter = get_quarter(QUARTER_NAME)
 
-nodes: dict[int, dict] = {}
-walkways: list[dict] = []
+nodes: list[dict] = []
+footways: list[dict] = []
 
 parsed_quarter: dict[str,list[dict]] = {
-    "nodes": [],
-    "paths": []
+    "nodes": []
 }
 
 for element in quarter["elements"]:
     assert isinstance(element,dict)
     if element["type"] == "way":
-        walkways.append(element)
+        footways.append(element)
     elif element["type"] == "node":
-        nodes[element["id"]] = element
-        
-print(nodes)
-print(walkways)
+        nodes.append(element)
+
+connections: list[tuple[int,int]] = []
+for footway in footways:
+    if "nodes" in footway.keys():
+        way_nodes: list[int] = footway["nodes"]
+        for i in range(len(way_nodes)-1):
+            connections.append((way_nodes[i],way_nodes[i+1]))
+            
+for node in nodes:
+    parsed_node: dict = {
+        "id": node["id"]
+    }
+            
+print(connections)
