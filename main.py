@@ -9,15 +9,39 @@ print(QUARTER_NAME)
 
 api = overpass.API(user_agent="Ant Colony Simulation on Open Street Map (d00zyl1v3@gmail.com)", debug=False)
 
-if api.slots_available > 0:
-    boundary = api.get(f'relation["boundary"]["place"="quarter"]["name"="{QUARTER_NAME}"]',responseformat="json",verbosity="ids",)
-    assert isinstance(boundary, dict)
-    rel_id = boundary["elements"][0]["id"]
-    response = api.get(f'nw(area:{3600000000+rel_id})', responseformat="json")
-    print(response)
-    with open("output.json", "w") as f:
-        json.dump(response, f, indent=4)
-else:
-    raise RuntimeError("Ratelimited")
+def get_quarter(quarter_name: str) -> dict:
+    if api.slots_available > 0:
+        try:
+            with open(f"{quarter_name}.json", "r") as f:
+                quarter = json.load(f)
+        except FileNotFoundError:
+            boundary = api.get(f'relation["boundary"]["place"="quarter"]["name"="{quarter_name}"]',responseformat="json",verbosity="ids",)
+            assert isinstance(boundary, dict)
+            rel_id = boundary["elements"][0]["id"]
+            quarter = api.get(f'node(area:{3600000000+rel_id});way(area:{3600000000+rel_id})["highway"="footway"]', responseformat="json")
+            assert isinstance(quarter,dict)
+            with open(f"{quarter_name}.json", "w") as f:
+                json.dump(quarter, f, indent=4)
+        return quarter
+    else:
+        raise RuntimeError("Ratelimited")
 
-# TODO: process output
+quarter = get_quarter(QUARTER_NAME)
+
+nodes: dict[int, dict] = {}
+walkways: list[dict] = []
+
+parsed_quarter: dict[str,list[dict]] = {
+    "nodes": [],
+    "paths": []
+}
+
+for element in quarter["elements"]:
+    assert isinstance(element,dict)
+    if element["type"] == "way":
+        walkways.append(element)
+    elif element["type"] == "node":
+        nodes[element["id"]] = element
+        
+print(nodes)
+print(walkways)
