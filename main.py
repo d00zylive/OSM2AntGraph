@@ -9,18 +9,17 @@ print(QUARTER_NAME)
 
 api = overpass.API(user_agent="Ant Colony Simulation on Open Street Map (d00zyl1v3@gmail.com)", debug=False)
 
-query = f'''
-relation["boundary"]["place"="quarter"]["name"="{QUARTER_NAME}"]
-'''
-
 if api.slots_available > 0:
-    response = api.get(query,responseformat="json")
-    assert isinstance(response, dict)
-
+    quarter = api.get(f'relation["boundary"]["place"="quarter"]["name"="{QUARTER_NAME}"]',responseformat="json",verbosity="ids",)
+    assert isinstance(quarter, dict)
+    with open("quarter.json", "w") as f:
+        json.dump(quarter, f, indent=4)
+    relId = quarter["elements"][0]["id"]
+    print(relId)
+    
+    response = api.get(f'nwr(area:{3600000000+relId})', responseformat="json")
+    print(response)
     with open("output.json", "w") as f:
         json.dump(response, f, indent=4)
-        
-    quarter = response["elements"][0]
-    print(quarter)
 else:
     print("Ratelimited")
