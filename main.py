@@ -28,7 +28,7 @@ def get_quarter(quarter_name: str) -> dict:
 
 quarter = get_quarter(QUARTER_NAME)
 
-nodes: dict[int, dict[int,int|float]] = {}
+nodes: dict[int, dict[str,int|float]] = {}
 
 parsed_quarter: dict[str,list[dict]] = {
     "nodes": []
@@ -47,18 +47,22 @@ for footway in quarter["elements"]:
                     "lat": geometry[i]["lat"],
                     "lon": geometry[i]["lon"]
                 }
-        if way_nodes[len(way_nodes)-1] not in nodes.keys():
-            nodes[way_nodes[len(way_nodes)-1]] = {
+        if way_nodes[-1] not in nodes.keys():
+            nodes[way_nodes[-1]] = {
                 "id": way_nodes[len(way_nodes)-1],
                 "lat": geometry[len(way_nodes)-1]["lat"],
                 "lon": geometry[len(way_nodes)-1]["lon"]
             }
             
-for node in nodes:
+for node in nodes.values():
     parsed_node: dict = {
         "id": node["id"],
-        "x": None,
-        "y": None,
+        "x": node["lat"],
+        "y": node["lon"],
         "facility": None, # Need to figure out later
         "connections": [connection[0] if connection[1] == node["id"] else connection[1] for connection in connections if node["id"] in connection]
     }
+    parsed_quarter["nodes"].append(parsed_node)
+    
+with open("export.json", "x") as f:
+    json.dump(parsed_quarter, f, indent=2)
