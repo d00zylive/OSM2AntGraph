@@ -5,14 +5,13 @@ import dotenv
 
 dotenv.load_dotenv()
 QUARTER_NAME = os.environ["QUARTER"]
-print(QUARTER_NAME)
 
-api = overpass.API(user_agent="Ant Colony Simulation on Open Street Map (d00zyl1v3@gmail.com)", debug=False)
+api = overpass.API(user_agent="Ant Colony Simulation on Open Street Map (d00zyl1v3@gmail.com)", debug=False, timeout=(25,120))
 
 def get_quarter(quarter_name: str) -> tuple[dict,dict[str,float]]:
     if api.slots_available >= 2:
         try:
-            with open(f"{quarter_name}.json", "r") as f:
+            with open(f"{quarter_name}_raw.json", "r") as f:
                 quarter_file: list[dict] = json.load(f)
                 boundingbox = quarter_file[0]
                 quarter = quarter_file[1]
@@ -21,9 +20,9 @@ def get_quarter(quarter_name: str) -> tuple[dict,dict[str,float]]:
             assert isinstance(boundary,dict)
             boundingbox = boundary["elements"][0]["bounds"]
             rel_id = boundary["elements"][0]["id"]
-            quarter = api.get(f'way(area:{3600000000+rel_id})["highway"="footway"]', responseformat="json",verbosity="geom")
+            quarter = api.get(f'way(area:{3600000000+rel_id})["highway"~"(footway|pedestrian|living_street)"]', responseformat="json", verbosity="geom")
             assert isinstance(quarter,dict)
-            with open(f"{quarter_name}.json", "w") as f:
+            with open(f"{quarter_name}_raw.json", "w") as f:
                 json.dump([boundingbox, quarter], f, indent=4)
         return quarter, boundingbox
     else:
@@ -68,6 +67,12 @@ for node in nodes.values():
         "connections": [connection[0] if connection[1] == node["id"] else connection[1] for connection in connections if node["id"] in connection]
     }
     parsed_quarter["nodes"].append(parsed_node)
-    
-with open("export.json", "x") as f:
-    json.dump(parsed_quarter, f, indent=2)
+
+try:
+    with open(f"{QUARTER_NAME}.json", "x") as f:
+        json.dump(parsed_quarter, f, indent=2)
+except FileExistsError:
+    if input(f"{QUARTER_NAME}.json already exists. Are you sure you want to overwrite? (y/N)    ") == "y":
+        with open(f"{QUARTER_NAME}.json", "w") as f:
+            json.dump(parsed_quarter, f, indent=2)
+        
