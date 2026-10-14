@@ -13,7 +13,9 @@ def get_quarter(quarter_name: str) -> tuple[dict,dict[str,float]]:
     if api.slots_available >= 2:
         try:
             with open(f"{quarter_name}.json", "r") as f:
-                quarter = json.load(f)
+                quarter_file: list[dict] = json.load(f)
+                boundingbox = quarter_file[0]
+                quarter = quarter_file[1]
         except FileNotFoundError:
             boundary = api.get(f'relation["boundary"]["place"="quarter"]["name"="{quarter_name}"]',responseformat="json",verbosity="ids bb",)
             assert isinstance(boundary,dict)
@@ -22,7 +24,7 @@ def get_quarter(quarter_name: str) -> tuple[dict,dict[str,float]]:
             quarter = api.get(f'way(area:{3600000000+rel_id})["highway"="footway"]', responseformat="json",verbosity="geom")
             assert isinstance(quarter,dict)
             with open(f"{quarter_name}.json", "w") as f:
-                json.dump(quarter, f, indent=4)
+                json.dump([boundingbox, quarter], f, indent=4)
         return quarter, boundingbox
     else:
         raise RuntimeError("Ratelimited")
