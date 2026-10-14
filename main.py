@@ -60,8 +60,8 @@ for footway in quarter["elements"]:
 for node in nodes.values():
     parsed_node: dict = {
         "id": node["id"],
-        "x": node["lat"],
-        "y": node["lon"],
+        "x": node["lon"],
+        "y": node["lat"],
         "facility": None, # Need to figure out later
         "connections": [connection[0] if connection[1] == node["id"] else connection[1] for connection in connections if node["id"] in connection]
     }
