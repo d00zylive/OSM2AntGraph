@@ -6,7 +6,7 @@ import dotenv
 dotenv.load_dotenv()
 QUARTER_NAME = os.environ["QUARTER"]
 
-api = overpass.API(user_agent="Ant Colony Simulation on Open Street Map (d00zyl1v3@gmail.com)", debug=False, timeout=(25,120))
+api = overpass.API(endpoint="https://overpass.private.coffee/api/interpreter", user_agent="Ant Colony Simulation on Open Street Map (d00zyl1v3@gmail.com)", debug=False, timeout=(25,120))
 
 def get_quarter(quarter_name: str) -> tuple[dict,dict[str,float]]:
     if api.slots_available >= 2:
@@ -20,7 +20,7 @@ def get_quarter(quarter_name: str) -> tuple[dict,dict[str,float]]:
             assert isinstance(boundary,dict)
             boundingbox = boundary["elements"][0]["bounds"]
             rel_id = boundary["elements"][0]["id"]
-            quarter = api.get(f'way(area:{3600000000+rel_id})["highway"~"(footway|pedestrian|living_street)"]', responseformat="json", verbosity="geom")
+            quarter = api.get(f'way(area:{3600000000+rel_id})["highway"~"(footway|pedestrian|living_street|residential|service|cycleway|path)"]', responseformat="json", verbosity="geom")
             assert isinstance(quarter,dict)
             with open(f"{quarter_name}_raw.json", "w") as f:
                 json.dump([boundingbox, quarter], f, indent=4)
