@@ -2,31 +2,37 @@ import overpass
 import json
 import os
 import dotenv
+import time
 
 dotenv.load_dotenv()
 QUARTER_NAME = os.environ["QUARTER"]
 
-api = overpass.API(endpoint="https://overpass.private.coffee/api/interpreter", user_agent="Ant Colony Simulation on Open Street Map (d00zyl1v3@gmail.com)", debug=False, timeout=(25,120))
+api = overpass.API(user_agent="Ant Colony Simulation on Open Street Map (d00zyl1v3@gmail.com)", debug=False, timeout=(25,120))
 
 def get_quarter(quarter_name: str) -> tuple[dict,dict[str,float]]:
-    if api.slots_available >= 2:
+    t = 1
+    while True:
         try:
             with open(f"{quarter_name}_raw.json", "r") as f:
                 quarter_file: list[dict] = json.load(f)
                 boundingbox = quarter_file[0]
                 quarter = quarter_file[1]
+            return quarter, boundingbox
         except FileNotFoundError:
-            boundary = api.get(f'relation["boundary"]["place"="quarter"]["name"="{quarter_name}"]',responseformat="json",verbosity="ids bb",)
-            assert isinstance(boundary,dict)
-            boundingbox = boundary["elements"][0]["bounds"]
-            rel_id = boundary["elements"][0]["id"]
-            quarter = api.get(f'way(area:{3600000000+rel_id})["highway"~"(footway|pedestrian|living_street|residential|service|cycleway|path)"]', responseformat="json", verbosity="geom")
-            assert isinstance(quarter,dict)
-            with open(f"{quarter_name}_raw.json", "w") as f:
-                json.dump([boundingbox, quarter], f, indent=4)
-        return quarter, boundingbox
-    else:
-        raise RuntimeError("Ratelimited")
+            try:
+                print("Attempting request")
+                boundary = api.get(f'relation["boundary"]["place"="quarter"]["name"="{quarter_name}"]',responseformat="json",verbosity="ids bb",)
+                assert isinstance(boundary,dict)
+                boundingbox = boundary["elements"][0]["bounds"]
+                rel_id = boundary["elements"][0]["id"]
+                quarter = api.get(f'way(area:{3600000000+rel_id})["highway"~"(footway|pedestrian|living_street|residential|service|cycleway|path|unclassified)"]', responseformat="json", verbosity="geom")
+                assert isinstance(quarter,dict)
+                with open(f"{quarter_name}_raw.json", "w") as f:
+                    json.dump([boundingbox, quarter], f, indent=4)
+            except (overpass.errors.UnknownOverpassError, overpass.errors.TimeoutError, overpass.errors.ServerLoadError):
+                print(f"Request failed. Retrying in {t} seconds")
+                time.sleep(t)
+                t *= 2
 
 quarter, boundingbox = get_quarter(QUARTER_NAME)
 
