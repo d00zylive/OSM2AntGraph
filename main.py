@@ -57,6 +57,7 @@ assert isinstance(parsed_quarter["nodes"], list)
 connections: list[tuple[int,int]] = []
 for element in quarter["elements"]:
     if element["type"] == "way":
+        has_houses = element["tags"]["highway"] in ("residential", "living_street")
         if "nodes" in element.keys() and "geometry" in element.keys():
             way_nodes: list[int] = element["nodes"]
             geometry: list[dict[str,float]] = element["geometry"]
@@ -67,7 +68,7 @@ for element in quarter["elements"]:
                         "id": way_nodes[i],
                         "lat": geometry[i]["lat"],
                         "lon": geometry[i]["lon"],
-                        "facility": None
+                        "facility": "nest" if has_houses else None
                     }
             if way_nodes[-1] not in nodes.keys():
                 nodes[way_nodes[-1]] = {
